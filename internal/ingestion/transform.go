@@ -178,7 +178,8 @@ func createProjectTar(files []fileEntry, cwd string) ([]byte, error) {
 		}
 		hdr.Name = relPath
 		// Normalize all filesystem metadata so the content hash reflects only
-		// file content and path, not extraction-time mtimes or platform uid/gid.
+		// file content and path, not extraction-time mtimes, platform uid/gid,
+		// or umask-dependent mode bits.
 		// Without this, every ingestion run produces unique blobs for unchanged
 		// projects (mtime = "now" on extraction), defeating deduplication.
 		hdr.ModTime = time.Time{}
@@ -186,6 +187,13 @@ func createProjectTar(files []fileEntry, cwd string) ([]byte, error) {
 		hdr.ChangeTime = time.Time{}
 		hdr.Uid, hdr.Gid = 0, 0
 		hdr.Uname, hdr.Gname = "", ""
+		// Mode bits from os.Create depend on the process umask (e.g. 0644 vs 0664),
+		// which varies by host. Normalize to fixed values so the hash is stable.
+		if info.IsDir() {
+			hdr.Mode = 0o755
+		} else {
+			hdr.Mode = 0o644
+		}
 
 		if err := tw.WriteHeader(hdr); err != nil {
 			return nil, err
@@ -208,7 +216,7 @@ func createProjectTar(files []fileEntry, cwd string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// gzipBytes compresses data with gzip (best compression, matching the Node.js ingestion path).
+// gzipBytes compresses data with gzip at best compression.
 func gzipBytes(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gw, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
