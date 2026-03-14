@@ -1,11 +1,11 @@
 # kbn-ts-type-check-oblt-server-go
 
-Go port of the TypeScript type-check artifact cache server. It **polls** a GCS bucket for new monolithic archives (produced by an external CI, e.g. Kibana), **transforms** them into a granular index + content-addressed artifact store, and **serves** on-demand artifact tars via HTTP. It does not depend on the Kibana repo.
+Standalone cache service for granular TypeScript type-check artifacts. It **polls** a GCS bucket for new monolithic archives (produced by an external CI, e.g. Kibana), **transforms** them into a granular index + content-addressed artifact store, and **serves** on-demand artifact tars via HTTP. It does not depend on the Kibana repo.
 
 - **Local:** Run with `DESTINATION_TYPE=local` and `DESTINATION_PATH=./data/artifacts` to store artifacts on the filesystem.
 - **GCP:** Run with `DESTINATION_TYPE=gcs` and `DESTINATION_BUCKET=your-bucket` to store artifacts in a GCS bucket.
 
-## Why Go?
+## Features
 
 - **True parallelism**: all CPU cores for gzip/gunzip (no libuv thread-pool cap).
 - **Streaming pipeline**: `io.Pipe` and tee eliminate buffering during passthrough and selective restores.
